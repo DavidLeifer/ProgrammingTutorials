@@ -1,0 +1,64 @@
+# Android Raspberry Pi Boot
+# Hypothesis: 1990s open source developed to reduce C++ complexity and focus on one file
+#                                         Python and Linux with cli home computers
+#                                              + rely on C imports
+#                                         Java developed with proprietary GUI
+#                                              + explains "verbosity" or several one line files
+#                                         At least since 2016+ they're very similar
+# Information on GSI Images for Booting
+# https://source.android.com/docs/core/tests/vts/gsi#downloading-gsis
+# https://source.android.com/docs/setup/download
+# Latest is Android16 - 202601227 phone only -> directions moved to mount-fail.txt
+# https://ci.android.com/builds/branches/aosp-android-latest-release/grid
+# Failed installing only system.img from Android16 GSI
+# https://developer.android.com/about/versions/16/gsi-release-notes
+# https://developer.android.com/topic/generic-system-image/releases#android-gsi-16
+
+# Backing up files
+# Local host share.
+python3 -m http.server -b <ip address> 8080
+ps aux | grep "http.server"
+kill -9 <PID>
+
+# Download links
+# Android12
+# https://ci.android.com/builds/submitted/14654134/aosp_arm64-userdebug/latest
+# libconscrypt_openjdk_jni.so
+# Google lists the following steps as requirements -> write similar tools
+# 0) "trebelized" device idk what that is.
+	# https://source.android.com/docs/core/tests/vts/gsi#flashing-gsis
+# 1) mkbootimg -  unpacking .img files
+	# disable verification
+	# https://github.com/libxzr/vbmeta-disable-verification
+	# sudo gcc vbmeta-disable.c -o vbmeta-disable && ./vbmeta-disable /andPi/vbmeta.img
+        # The .c file is for auto installs and changes memory registers:
+		# FLAG_DISABLE_VERITY 0x01
+		# FLAG_DISABLE_VERIFICATION 0x02
+	# 0) Use fastboot.
+		sudo apt install android-tools-fastboot
+		sudo fastboot flash vbmeta --disable-verity --disable-verification vbmeta.img
+	# 1) mount the f2fs img, dd a blank img, copy to the blank img, edit the FLAG,
+	# use the update blank img
+		sudo mkdir /mnt/vbmeta/ && sudo mkdir /mnt/vbmetaDs/
+		sudo dd if=/dev/zero of=/andPi/vbmetaDs.img bs=1M count=50 status=progress
+		# sudo mkfs.f2fs /andPi/vbmetaDs.img
+		# f2fs file size 4k too small to mount
+		sudo mount -o loop,ro,noatime -t f2fs /andPi/vbmeta.img /mnt/vbmeta
+		sudo mount -o loop /andPi/vbmetaDs.img /mnt/vbmetaDs
+		sudo cp -a /mnt/vbmeta/* /mnt/vbmetaDs/
+		# Copy the ext4 mount to the fat32 mount. /d/ folder is for debugging.
+		#sudo cp -a --sparse=always /mnt/andPi/* /mnt/andPi32/
+		# or: sudo rsync -avh --progress /mnt/andPi/ /mnt/andPi32
+		# Other commands
+		du -h /andPi/vbmetaDs.img
+		lsblk -f
+		losetup -a
+		sudo blkid /dev/sda
+		sudo diff -r -q /mnt/vbmeta/ /mnt/vbmetaDs/
+		sudo unzip aosp_arm64-img-14654134.zip -d /andPi/
+		sudo fdisk /dev/sda
+	# 2) edit the c file to decompress the f2fs img and edit the FLAG to remove verification
+
+# 2) fastboot - flashing the ext4 img on fat32 partitions of the USB
+        # Describes mounting several img using losetup
+	# https://superuser.com/questions/211338/how-to-mount-a-multi-partition-disk-image-in-linux

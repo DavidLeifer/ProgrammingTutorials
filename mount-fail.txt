@@ -1,0 +1,83 @@
+# Latest is Android16 - 202601227 phone only
+# https://ci.android.com/builds/branches/aosp-android-latest-release/grid
+# Failed booting only system.img from Android16 GSI
+# https://developer.android.com/about/versions/16/gsi-release-notes
+# https://developer.android.com/topic/generic-system-image/releases#android-gsi-16
+
+# Step 0) Plug in second USB for AndroidPi boot.
+# Identify the USB. Here the SD slot card that the
+# OS is running on is /dev/mmcblk0 while the USB
+# is /dev/sda and has a partition /dev/sda1
+lsblk -f
+blkid
+sudo blkid /dev/sda
+
+# Unmount the file partition.
+sudo umount /dev/sda2
+# Make two directories to mount the USB partitions.
+sudo mkdir /media/ubuntu/sda1
+sudo mkdir /media/ubuntu/sda2
+# Sometimes the mount gets locked as a folder
+# after mounting with GUI since it's automatic
+# (i.e. /media/ubuntu/ABCD-1234) and mkdir partitions isn't.
+# sudo rm -r ABCD-1234.
+
+# Step 1) Partition the drive.
+sudo fdisk /dev/sda
+# Help           m
+# Print          p
+# New partition  n
+# Delete         d
+# Keep the vfat32 signature.
+# expert command x -> i change 8 bit hex identifier 0x00000000
+# The Raspberry Pi B manual specifies configuration files to change 
+# the boot order to USB -> SD Card -> Network override and the
+# hex identifier is used in the /root/firmware/cmdline.txt
+# root=PARTUUID=0x00000000-02
+# and the /etc/fstab. The autoboot.txt file specifies a failsafe backup
+# OS boot using specific numbers and try/except clause to avoid booting
+# to a read only shell if the USB OS doesn't boot.
+# Otherwise the sudo raspi-config command opens a GUI method.
+
+# Step 2) Android Pi ext4 to fat32. 
+# The Raspberry Pi hardware accepts fat32 and Android system.img is ext4.
+# Make the mounting points.
+sudo mkdir /mnt/andPi
+sudo mkdir /mnt/andPi32
+# Mount the ext4 system.img as read only since it's Android.
+sudo mount -o loop,ro,noatime /andPi/sytem.img /mnt/andPi
+
+# Create an empty fat 32 img with almost two GB.
+sudo dd if=/dev/zero of=/andPi/system32.img bs=1M count=2024 status=progress
+# Reformat the empty fat 32.
+sudo mkfs.vfat -F 32 -v /andPi/system32.img
+# Mount the fat32 empty img.
+sudo mount -o loop /andPi/system32.img /mnt/andPi32
+# Check the loops.
+losetup -a
+losetup -l /dev/loop0
+# Copy the ext4 mount to the fat32 mount. /d/ folder is for debugging.
+sudo cp -a --sparse=always /mnt/andPi/* /mnt/andPi32/
+# or: sudo rsync -avh --progress /mnt/andPi/ /mnt/andPi32
+# Verify that andPi32 has files in it.
+sudo diff -r -q /mnt/andPi/ /mnt/andPi32/
+# Unmount if it does. Alot of system and odm file links do not point to /vendor/.
+sudo umount /mnt/andPi/
+sudo umount /mnt/andPi32/
+# Check if the andPi32.img mounts on a new folder.
+sudo mkdir /mnt/and32img
+sudo mount -o loop /andPi/system32.img /mnt/and32img
+# Unmount if there are files in it.
+sudo umount /mnt/and32img/
+
+# Step 3) Reformat the USB SD partition to fat32 and flash.
+# sudo mkfs --type=ext4 --verbose /dev/sda2
+# sudo mkfs.vfat -F 32 -n "bootfs" -v /dev/sda2
+lsblk -f
+sudo blkid /dev/sda2
+# Flash the system partition.
+sudo dd if=/andPi/system32.img of=/dev/sda2 status=progress
+# sync
+# Unmount the partition and eject the USB SD.
+sudo umount /dev/sda2/
+sudo eject /dev/sda

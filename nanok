@@ -1,0 +1,31 @@
+#! /usr/bin/bash
+# echo $PATH
+
+# Opens a file with nano and makes a backup
+# directory and folder.
+
+# Use the command nanok <file>
+# Modify /home/<user>/.bashrc to make nanok
+# useable for the system or <user> by specifying
+# the nanok file's location. This part in .bashrc
+# export PATH=$PATH:/home/<user>/Desktop
+
+# Opens file with nano.
+nano $1
+
+# The backup folder and file's location.
+BACKUP=".nanok_"
+#DIRECTORY=pwd
+
+# Make a directory if it doesn't exist,
+# otherwise copy the backup into the directory.
+if [ ! -d "./$BACKUP" ]; then
+  echo "Directory '$BACKUP' doesnt exist."
+  mkdir -m 700 ./$BACKUP
+  cp ./$1 ./$BACKUP/$BACKUP$1
+  echo "Directory and copy complete."
+else
+  echo "Directory '$BACKUP' exists, copying file"
+  cp ./$1 ./$BACKUP/$BACKUP$1
+  echo "Copy complete"
+fi
