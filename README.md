@@ -2,7 +2,7 @@
 
 W3 schools C syntax - 20250601 - 20260101
 
-binary.c - 20260505 - Learning C datatypes - formats decimal int as binary int and char[] binary for binary addition.
+binary.c - 20260505 - Learning C datatypes - formats decimal int as binary int and char[] binary for binary addition. Moved to DavidLeifer/calculator
 
 mount-fail.txt 20251201-20260201 - failed to boot Android 16 on RaspberryPi using default linux tools and dual partitioning an existing SD card. The main problem was existing data on the SD card and I didn't want to buy another for a one off experiment.
 
