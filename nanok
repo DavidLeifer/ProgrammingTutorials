@@ -12,20 +12,34 @@
 
 # Opens file with nano.
 nano $1
+# echo $1
 
+DIRECTORY="${1%/*}"
+IN_FILE="${1##*/}"
+
+# Checks for nested folder paths.
+if [ "$DIRECTORY" != "$IN_FILE" ]; then
+  BACKUP="$DIRECTORY/.nanok"
+else
+  # Otherwise it uses pwd ./.nanok.
+  BACKUP="./.nanok"
+fi
 # The backup folder and file's location.
-BACKUP=".nanok_"
-#DIRECTORY=pwd
+DATE=$(date "+%Y%m%d%H%M_")
+OUT_FILE="$BACKUP/$DATE$IN_FILE"
+
+# echo $BACKUP
+# echo $OUT_FILE
 
 # Make a directory if it doesn't exist,
 # otherwise copy the backup into the directory.
-if [ ! -d "./$BACKUP" ]; then
+if [ ! -d "$BACKUP" ]; then
   echo "Directory '$BACKUP' doesnt exist."
-  mkdir -m 700 ./$BACKUP
-  cp ./$1 ./$BACKUP/$BACKUP$1
+  mkdir -m 700 $BACKUP
+  cp ./$1 $OUT_FILE
   echo "Directory and copy complete."
 else
   echo "Directory '$BACKUP' exists, copying file"
-  cp ./$1 ./$BACKUP/$BACKUP$1
+  cp ./$1 $OUT_FILE
   echo "Copy complete"
 fi
